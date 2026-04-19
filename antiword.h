@@ -227,6 +227,7 @@
 #define GLOBAL_ANTIWORD_DIR	"/usr/share/antiword"
 #define ANTIWORD_DIR		".antiword"
 #define FONTNAMES_FILE		"fontnames"
+#define EXEC_RESOURCE_SUBDIR    "Resources"
 #endif /* __dos */
 /* The names of grouped mapping files */
 	/* ASCII */

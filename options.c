@@ -130,6 +130,42 @@ szCreateSuffix(const char *szLeafname)
 	return ".txt";
 } /* end of szCreateSuffix */
 
+#if defined(__linux__)
+/**
+ * @brief Заполняет buffer путём к директории, где находится запущенный бинарник.
+ * @param buffer Буфер для результата
+ * @param size   Размер буфера
+ * @return 0 при успехе, -1 при ошибке
+ */
+int get_exe_dir(char *buffer, size_t size) {
+    if (!buffer || size == 0) return -1;
+
+    char exe_path[PATH_MAX];
+    // readlink не добавляет '\0', поэтому оставляем место для него
+    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    if (len == -1) {
+        perror("readlink(/proc/self/exe)");
+        return -1;
+    }
+    exe_path[len] = '\0'; // Явно завершаем строку
+
+    // Ищем последний символ '/'
+    char *last_slash = strrchr(exe_path, '/');
+    
+    if (!last_slash) {
+        // Если '/' нет, значит файл лежит в текущей рабочей директории
+        snprintf(buffer, size, ".");
+    } else {
+        size_t dir_len = last_slash - exe_path;
+        if (dir_len == 0) dir_len = 1; // Случай корневой директории "/"
+        // Копируем только часть пути до последнего слэша
+        snprintf(buffer, size, "%.*s", (int)dir_len, exe_path);
+    }
+
+    return 0;
+}
+#endif
+
 /*
  * eMappingFile2Encoding - convert the mapping file to an encoding
  */
@@ -176,6 +212,10 @@ eMappingFile2Encoding(const char *szLeafname)
 static FILE *
 pOpenCharacterMappingFile(const char *szLeafname)
 {
+
+#if defined(__linux__)
+	char	exe_path[PATH_MAX+1];
+#endif
 #if !defined(__riscos)
 	FILE	*pFile;
 	const char	*szHome, *szAntiword, *szSuffix;
@@ -197,6 +237,28 @@ pOpenCharacterMappingFile(const char *szLeafname)
 
 	/* Set length */
 	tFilenameLen = strlen(szLeafname) + strlen(szSuffix);
+#if defined(__linux__)
+	/* Try current exec dir */
+	if (get_exe_dir(exe_path, sizeof(exe_path)) == 0) {
+		szAntiword = exe_path;
+		if (szAntiword != NULL && szAntiword[0] != '\0') {
+	    		if (strlen(szAntiword) + tFilenameLen <
+				sizeof(szMappingFile) -
+				sizeof("%s" FILE_SEPARATOR EXEC_RESOURCE_SUBDIR FILE_SEPARATOR "%s%s")) {
+		                        snprintf(szMappingFile, sizeof(szMappingFile),
+                		                "%s" FILE_SEPARATOR EXEC_RESOURCE_SUBDIR FILE_SEPARATOR "%s%s", 
+                                		szAntiword, szLeafname, szSuffix);
+						DBG_MSG(szMappingFile);
+				pFile = fopen(szMappingFile, "r");
+				if (pFile != NULL) {
+					return pFile;
+				}
+			} else {
+				werr(0, "Current exec dir mappingfilename ignored");
+			}
+		}
+        }
+#endif
 
 	/* Try the environment version of the mapping file */
 	szAntiword = szGetAntiwordDirectory();

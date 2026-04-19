@@ -1,3 +1,7 @@
+# Дополнения
+ * antiword теперь ищет кодировки еще и в папке Resources которая рядом
+с запускаемым файлом.
+
 # antiword
 Antiword: a free MS Word document reader
 

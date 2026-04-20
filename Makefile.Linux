@@ -14,9 +14,9 @@ DB	= NDEBUG
 # Optimization: -O<n> or debugging: -g
 OPT	= -O2
 
-LDLIBS	=
+LDLIBS	= -static
 
-CFLAGS	= -Wall -pedantic $(OPT) -D$(DB)
+CFLAGS	= -Wall -pedantic -static $(OPT) -D$(DB)
 LDFLAGS	=
 
 OBJS	=\
